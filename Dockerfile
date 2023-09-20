@@ -8,15 +8,8 @@ RUN apt-get update \
 && apt install -y netcat \
 && apt install -y systemd
 
-# && rm /etc/nginx/nginx.conf
-#COPY ./postgresql.conf /etc/postgresql/15/main/  
-#COPY ./mysite.conf /etc/nginx/sites-available/ 
-#COPY ./project.conf /etc/nginx/sites-available/
-COPY ./project.conf /etc/nginx/conf.d/
-#COPY ./pg_hba.conf /etc/postgresql/14/main/
 
-#RUN ln -s /etc/nginx/sites-available/mysite.conf /etc/nginx/sites-enabled/
-#RUN ln -s /etc/nginx/sites-available/project.conf /etc/nginx/sites-enabled/
+COPY ./project.conf /etc/nginx/conf.d/
 
 # set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1 
@@ -24,9 +17,9 @@ ENV PYTHONUNBUFFERED 1
 
 # создание каталога для приложения
 ENV APP_HOME=/usr/src/app
-RUN mkdir -p $APP_HOME/static && mkdir -p $APP_HOME/media
 WORKDIR $APP_HOME
-VOLUME $APP_HOME
+
+RUN mkdir -v $APP_HOME/static && mkdir -v -m 777 $APP_HOME/media
 
 COPY ./requirements.txt $APP_HOME
 
@@ -41,25 +34,13 @@ RUN set -xe \
 # копирование проекта Django
 COPY . .
 
-#COPY ./entrypoint.sh $APP_HOME
-
-# создаем отдельного пользователя и изменение прав
-#RUN groupadd -r django_app && useradd -r -g django_app dj_app \
-#&& chown -R django_app:django_app $APP_HOME \
-#&& chmod go-rwx $APP_HOME \
-#&& chmod go+x $APP_HOME \
-#&& chgrp -R django_app $APP_HOME \  
-#&& chmod -R go-rwx $APP_HOME \ 
-#&& chmod -R go+rwx $APP_HOME 
-
-# изменение рабочего пользователя
-#USER app
-
 # setting rights
 RUN chmod 774 /usr/src/app/entrypoint.sh \
 && rm /etc/nginx/sites-enabled/default
 
 EXPOSE 8000:8081
+
+VOLUME $APP_HOME /var/lib/postgresql /var/run/postgresql
 
 # run entrypoint.sh
 ENTRYPOINT ["/usr/src/app/entrypoint.sh"]

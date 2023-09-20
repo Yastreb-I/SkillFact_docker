@@ -1,0 +1,1 @@
+docker run -d -p 8000:8081 -v /var/docker_django/app:/usr/src/app --name cont_pd img_updnpg
