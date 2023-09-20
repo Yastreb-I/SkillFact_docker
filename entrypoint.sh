@@ -1,9 +1,21 @@
 #!/bin/bash
-service postgresql start && sleep 2 \
-&& su - postgres -c "psql -c 'CREATE DATABASE ${POSTGRES_DB};'" \
+POSTGRES_DB=django_db
+POSTGRES_USER=django_user
+POSTGRES_PASSWORD="0987poiu"
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+DATABASE=postgres
+
+
+service postgresql start && sleep 2
+su - postgres -c "psql -c 'CREATE DATABASE ${POSTGRES_DB};'" \
 && su - postgres -c "psql -c 'CREATE USER ${POSTGRES_USER} WITH PASSWORD '\''${POSTGRES_PASSWORD}'\'';'" \
 && su - postgres -c "psql -c 'ALTER DATABASE ${POSTGRES_DB} OWNER TO ${POSTGRES_USER};'" \
-&& sleep 1
+&& su - postgres -c "psql -c 'ALTER ROLE ${POSTGRES_USER} SET client_encoding TO '\''utf8'\'';'" \
+&& su - postgres -c "psql -c 'ALTER ROLE ${POSTGRES_USER} SET default_transaction_isolation TO '\''read committed'\'';'" \
+&& su - postgres -c "psql -c 'ALTER ROLE ${POSTGRES_USER} SET timezone TO '\''UTC'\'';'" \
+&& su - postgres -c "psql -c 'GRANT ALL PRIVILEGES ON DATABASE ${POSTGRES_DB} TO ${POSTGRES_USER};'"
+
 
 if [ "$DATABASE" = "postgres" ]
 then
@@ -15,22 +27,17 @@ then
 
     echo "PostgreSQL started"
 fi
-systemctl start gunicorn.socket
-systemctl enable --now gunicorn.socket
-#service gunicorn.socket start && sleep 4
-#chkconfig gunicorn.socket on
 
 service nginx start
-python3 manage.py flush --no-input
+
+#python3 manage.py flush --no-input
+sleep 1
 python3 manage.py migrate
 
-if [ "$DJANGO_SUPERUSER_USERNAME" ]
-then
-    python3 manage.py createsuperuser \
+DJANGO_SUPERUSER_USERNAME=admin python3 manage.py createsuperuser \
         --noinput \
-        --username $DJANGO_SUPERUSER_USERNAME \
-        --email $DJANGO_SUPERUSER_EMAIL
-fi
+        --username admin \
+        --email admin@example.com
 
 python3 manage.py collectstatic --no-input --clear
 gunicorn project.wsgi:application --bind 0.0.0.0:8000
